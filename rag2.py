@@ -26,7 +26,7 @@ from langchain import PromptTemplate
 from langchain.prompts import ChatPromptTemplate
 from langchain.chains import SequentialChain
 import torch
-loader = TextLoader("./data/市场监督实务培训-test.txt")
+loader = TextLoader("./data/红色食品.txt")
 documents = loader.load()
 
 # 文档分割
@@ -40,14 +40,17 @@ from langchain.embeddings import HuggingFaceBgeEmbeddings
 from langchain.vectorstores import Chroma
 
 # embedding model: m3e-base
-model_name = "/data/datasets/user1801004151/model_weights/m3e-base"
+# model_name = "/data/datasets/user1801004151/model_weights/m3e-base"
+model_name = "moka-ai/m3e-base"
 model_kwargs = {'device': 'cuda'}
 encode_kwargs = {'normalize_embeddings': True}
+catch_folder = 'models/m3/moka-ai_m3e-base'
 embedding = HuggingFaceBgeEmbeddings(
-                model_name=model_name,
+                model_name=catch_folder,
                 model_kwargs=model_kwargs,
                 encode_kwargs=encode_kwargs,
-                query_instruction="为文本生成向量表示用于文本检索"
+                query_instruction="为文本生成向量表示用于文本检索",
+                # catch_folder=catch_folder
             )
 
 # load data to Chroma db
@@ -95,8 +98,8 @@ class GLM(LLM):
         return "GLM"
             
     def load_model(self, llm_device="gpu",model_name_or_path=None):
-        model_config = AutoConfig.from_pretrained(model_name_or_path, trust_remote_code=True)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path,trust_remote_code=True)
+        model_config = AutoConfig.from_pretrained(model_name_or_path+'config', trust_remote_code=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path+'token',trust_remote_code=True)
         self.model = AutoModel.from_pretrained(model_name_or_path, config=model_config, trust_remote_code=True).half().cuda()
 
     def _call(self,prompt:str,history:List[str] = [],stop: Optional[List[str]] = None):
@@ -107,7 +110,9 @@ class GLM(LLM):
                     top_p=self.top_p)
         return response
 
-modelpath = "/data/datasets/user1801004151/model_weights/chatglm3-6b/"
+# modelpath = "/data/datasets/user1801004151/model_weights/chatglm3-6b/"
+modelpath = 'models/chat'
+catch_dir='models/chat'
 # LLM选型
 llm = GLM()
 llm.load_model(model_name_or_path = modelpath)
@@ -123,7 +128,7 @@ rag_chain = (
     | llm 
     | StrOutputParser()
 )
-query = '地方性法规可以设定哪些行政处罚？'
+query = '红色食品的好处'
 rag_chain.invoke(query)
 print(llm(query))
 print(rag_chain.invoke(query))
